@@ -1,0 +1,54 @@
+version: "3"
+services:
+  api:
+    build:
+      context: .
+      dockerfile: ./docker/Dockerfile
+      args:
+        PIPENV_ARGS: "--dev"
+    container_name: api
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      - ENVIRONMENT=${ENVIRONMENT}
+      - DB_USERNAME=${DB_USERNAME}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - DB_HOST={DB_HOST}
+      - DB_PORT=${DB_PORT}
+      - DB_NAME=${DB_NAME}
+    command:
+      - pipenv
+      - run
+      - python
+      - entry_point.py
+    ports:
+      - "8080:8080"
+    networks:
+      - api_network
+    depends_on:
+      - mongo
+    volumes:
+      - ./:/app
+
+  mongo:
+    image: mongo:latest
+    container_name: db
+    restart: unless-stopped
+    env_file: .env
+    ports:
+      - "27017:27017"
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=$MONGO_INITDB_ROOT_USERNAME
+      - MONGO_INITDB_ROOT_PASSWORD=$MONGO_INITDB_ROOT_PASSWORD
+      - MONGO_INITDB_DATABASE=$MONGO_INITDB_DATABASE
+    volumes:
+      - ./docker/docker-entrypoint-initdb.d/mongo-init.js:/docker-entrypoint-initdb.d/mongo-init.js:ro
+    networks:
+      - api_network
+
+volumes:
+  db-data:
+
+networks:
+  api_network:
+    driver: bridge
